@@ -45,7 +45,7 @@ func (t *Task) Copy() TaskInterface {
 
 // TaskSpec defines the desired state of Task.
 type TaskSpec struct {
-	v1beta1.TaskSpec `json:",inline"`
+	*v1beta1.TaskSpec `json:",inline"`
 
 	// Inputs is an optional set of parameters and resources which must be
 	// supplied by the user when a Task is executed by a TaskRun.
