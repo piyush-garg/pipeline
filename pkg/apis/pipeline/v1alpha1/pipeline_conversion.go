@@ -39,6 +39,7 @@ func (source *Pipeline) ConvertTo(ctx context.Context, obj apis.Convertible) err
 }
 
 func (source *PipelineSpec) ConvertTo(ctx context.Context, sink *v1beta1.PipelineSpec) error {
+	sink.Description = source.Description
 	sink.Resources = source.Resources
 	sink.Params = source.Params
 	sink.Workspaces = source.Workspaces
@@ -86,6 +87,7 @@ func (sink *PipelineSpec) ConvertFrom(ctx context.Context, source v1beta1.Pipeli
 	sink.Resources = source.Resources
 	sink.Params = source.Params
 	sink.Workspaces = source.Workspaces
+	sink.Description = source.Description
 	if len(source.Tasks) > 0 {
 		sink.Tasks = make([]PipelineTask, len(source.Tasks))
 		for i := range source.Tasks {
