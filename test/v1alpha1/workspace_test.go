@@ -39,7 +39,7 @@ func TestWorkspaceReadOnlyDisallowsWrite(t *testing.T) {
 	defer tearDown(t, c, namespace)
 
 	task := tb.Task(taskName, tb.TaskSpec(
-		tb.Step("alpine", tb.StepScript("echo foo > /workspace/test/file")),
+		tb.Step("busybox", tb.StepScript("echo foo > /workspace/test/file")),
 		tb.TaskWorkspace("test", "test workspace", "/workspace/test", true),
 	))
 	if _, err := c.TaskClient.Create(task); err != nil {
@@ -47,7 +47,7 @@ func TestWorkspaceReadOnlyDisallowsWrite(t *testing.T) {
 	}
 
 	taskRun := tb.TaskRun(taskRunName, tb.TaskRunSpec(
-		tb.TaskRunTaskRef(taskName), tb.TaskRunServiceAccountName("default"),
+		tb.TaskRunTaskRef(taskName),
 		tb.TaskRunWorkspaceEmptyDir("test", ""),
 	))
 	if _, err := c.TaskRunClient.Create(taskRun); err != nil {
@@ -96,7 +96,7 @@ func TestWorkspacePipelineRunDuplicateWorkspaceEntriesInvalid(t *testing.T) {
 	defer tearDown(t, c, namespace)
 
 	task := tb.Task(taskName, tb.TaskSpec(
-		tb.Step("alpine", tb.StepScript("cat /workspace/test/file")),
+		tb.Step("busybox", tb.StepScript("cat /workspace/test/file")),
 		tb.TaskWorkspace("test", "test workspace", "/workspace/test/file", true),
 	))
 	if _, err := c.TaskClient.Create(task); err != nil {
@@ -137,7 +137,7 @@ func TestWorkspacePipelineRunMissingWorkspaceInvalid(t *testing.T) {
 	defer tearDown(t, c, namespace)
 
 	task := tb.Task(taskName, tb.TaskSpec(
-		tb.Step("alpine", tb.StepScript("cat /workspace/test/file")),
+		tb.Step("busybox", tb.StepScript("cat /workspace/test/file")),
 		tb.TaskWorkspace("test", "test workspace", "/workspace/test/file", true),
 	))
 	if _, err := c.TaskClient.Create(task); err != nil {
