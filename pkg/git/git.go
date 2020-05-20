@@ -143,7 +143,7 @@ func Fetch(logger *zap.SugaredLogger, spec FetchSpec) error {
 }
 
 func ShowCommit(logger *zap.SugaredLogger, revision, path string) (string, error) {
-	output, err := run(logger, path, "show", "-q", "--pretty=format:%H", revision)
+	output, err := run(logger, path, "show", "--pretty=format:%H", revision)
 	if err != nil {
 		return "", err
 	}
