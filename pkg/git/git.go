@@ -99,12 +99,14 @@ func Fetch(logger *zap.SugaredLogger, spec FetchSpec) error {
 	checkoutParam := "FETCH_HEAD"
 
 	if spec.Refspec != "" {
+		fmt.Println("refspec %s\n", spec.Refspec)
 		// if refspec is specified, fetch the refspec and verify with provided revision
 		fetchParam = strings.Split(spec.Refspec, " ")
 		checkoutParam = spec.Revision
 	}
 
-	fmt.Println("fetch param %s \n", fetchParam)
+	fmt.Println("fetch param 0 %s \n", fetchParam[0])
+	fmt.Println("fetch param 1 %s \n", fetchParam[1])
 
 	// git-init always creates and checks out an empty master branch. When the user requests
 	// "master" as the revision, git-fetch will refuse to update the HEAD of the branch it is
