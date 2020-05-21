@@ -104,6 +104,8 @@ func Fetch(logger *zap.SugaredLogger, spec FetchSpec) error {
 		checkoutParam = spec.Revision
 	}
 
+	fmt.Println("fetch param %s \n", fetchParam)
+
 	// git-init always creates and checks out an empty master branch. When the user requests
 	// "master" as the revision, git-fetch will refuse to update the HEAD of the branch it is
 	// currently on. The --update-head-ok parameter tells git-fetch that it is ok to update
@@ -116,6 +118,7 @@ func Fetch(logger *zap.SugaredLogger, spec FetchSpec) error {
 	if _, err := run(logger, spec.Path, fetchArgs...); err != nil {
 		return fmt.Errorf("failed to fetch %v: %v", fetchParam, err)
 	}
+	fmt.Println("fetch args %s \n", fetchArgs)
 	// After performing a fetch, verify that the item to checkout is actually valid
 	if _, err := ShowCommit(logger, checkoutParam, spec.Path); err != nil {
 		return fmt.Errorf("error parsing %s after fetching refspec %s", checkoutParam, spec.Refspec)
