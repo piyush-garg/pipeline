@@ -5,4 +5,4 @@ if ! whoami &> /dev/null; then
   fi
 fi
 
-exec ${0}.orig $@
+exec ${0}.orig "$@"
