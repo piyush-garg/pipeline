@@ -663,7 +663,7 @@ func TestGitResource_GetDownloadTaskModifier(t *testing.T) {
 				"-path",
 				"/test/test",
 				"-refspec",
-				"refs/tags/v1.0:refs/tags/v1.0 refs/heads/master:refs/heads/master",
+				"'refs/tags/v1.0:refs/tags/v1.0 refs/heads/master:refs/heads/master'",
 				"-submodules=false",
 			},
 			WorkingDir: "/workspace",

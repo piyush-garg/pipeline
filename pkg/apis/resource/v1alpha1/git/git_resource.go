@@ -154,7 +154,7 @@ func (s *Resource) GetInputTaskModifier(_ *v1beta1.TaskSpec, path string) (v1bet
 	}
 
 	if s.Refspec != "" {
-		args = append(args, "-refspec", s.Refspec)
+		args = append(args, "-refspec", "'"+s.Refspec+"'")
 	}
 	if !s.Submodules {
 		args = append(args, "-submodules=false")
