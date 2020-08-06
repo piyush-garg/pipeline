@@ -58,6 +58,9 @@ function resolve_resources() {
              > ${TMP}
     fi
 
+	# Remove runAsUser: id, openshift takes care of randoming them and we dont need a fixed uid for that 
+	sed -i '/runAsUser: [0-9]*/d' ${TMP}
+
     # Adding the labels: openshift.io/cluster-monitoring on Namespace to add the cluster-monitoring
     # See: https://docs.openshift.com/container-platform/4.1/logging/efk-logging-deploying.html
     grep -qzP "kind: Namespace\nmetadata:\n\ \ name:\ tekton-pipelines" ${TMP} && sed -i '/^\ \ labels:/a \ \ \ \ openshift.io/cluster-monitoring:\ \"true\"' ${TMP}
