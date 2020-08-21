@@ -57,7 +57,7 @@ function run_yaml_e2e_tests() {
   header "Running YAML e2e tests"
   oc project $TEST_YAML_NAMESPACE
   resolve_resources examples/ tests-resolved.yaml $IGNORES $OPENSHIFT_REGISTRY_PREFIX
-  oc apply -f tests-resolved.yaml
+  oc create -f tests-resolved.yaml
 
   # The rest of this function copied from test/e2e-common.sh#run_yaml_tests()
   # The only change is "kubectl get builds" -> "oc get builds.build.knative.dev"
