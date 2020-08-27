@@ -8,7 +8,8 @@ set -x
 readonly API_SERVER=$(oc config view --minify | grep server | awk -F'//' '{print $2}' | awk -F':' '{print $1}')
 readonly OPENSHIFT_REGISTRY_PREFIX="${OPENSHIFT_REGISTRY_PREFIX:-${IMAGE_FORMAT//:\$\{component\}/}}"
 readonly TEST_NAMESPACE=tekton-pipeline-tests
-readonly TEST_YAML_NAMESPACE=tekton-pipeline-tests-yaml
+readonly TEST_YAML_NAMESPACE_ALPHA=tekton-pipeline-tests-yaml-alpha
+readonly TEST_YAML_NAMESPACE_BETA=tekton-pipeline-tests-yaml-beta
 readonly TEKTON_PIPELINE_NAMESPACE=tekton-pipelines
 readonly IGNORES="pipelinerun.yaml|pull-private-image.yaml|build-push-kaniko.yaml|gcs|git-volume.yaml|no-ci|cloud-event.yaml"
 readonly KO_DOCKER_REPO=image-registry.openshift-image-registry.svc:5000/tektoncd-pipeline
@@ -39,11 +40,12 @@ function create_pipeline() {
 }
 
 function create_test_namespace() {
-  for ns in ${TEKTON_NAMESPACE} ${OPENSHIFT_BUILD_NAMESPACE} ${TEST_YAML_NAMESPACE} ${TEST_NAMESPACE};do
+  for ns in ${TEKTON_NAMESPACE} ${OPENSHIFT_BUILD_NAMESPACE} ${TEST_YAML_NAMESPACE_ALPHA} ${TEST_YAML_NAMESPACE_BETA} ${TEST_NAMESPACE};do
      oc get project ${ns} >/dev/null 2>/dev/null || oc new-project ${ns}
   done
 
-  oc policy add-role-to-group system:image-puller system:serviceaccounts:$TEST_YAML_NAMESPACE -n $OPENSHIFT_BUILD_NAMESPACE
+  oc policy add-role-to-group system:image-puller system:serviceaccounts:$TEST_YAML_NAMESPACE_ALPHA -n $OPENSHIFT_BUILD_NAMESPACE
+  oc policy add-role-to-group system:image-puller system:serviceaccounts:$TEST_YAML_NAMESPACE_BETA -n $OPENSHIFT_BUILD_NAMESPACE
   oc policy add-role-to-group system:image-puller system:serviceaccounts:$TEST_NAMESPACE -n $OPENSHIFT_BUILD_NAMESPACE
 }
 
@@ -54,11 +56,30 @@ function run_go_e2e_tests() {
 }
 
 function run_yaml_e2e_tests() {
-  header "Running YAML e2e tests"
-  oc project $TEST_YAML_NAMESPACE
-  resolve_resources examples/ tests-resolved.yaml $IGNORES $OPENSHIFT_REGISTRY_PREFIX
-  oc apply -f tests-resolved.yaml
+  run_yaml_e2e_tests_alpha || return 1
 
+  run_yaml_e2e_tests_beta || return 1
+}
+
+function run_yaml_e2e_tests_alpha() {
+  header "Running YAML e2e tests for v1alpha1"
+  oc project $TEST_YAML_NAMESPACE_ALPHA
+  resolve_resources examples/v1alpha1 tests-resolved-alpha.yaml $IGNORES $OPENSHIFT_REGISTRY_PREFIX
+  oc create -f tests-resolved-alpha.yaml
+
+  common "v1alpha1" || return 1
+}
+
+function run_yaml_e2e_tests_beta() {
+  header "Running YAML e2e tests for v1beta1"
+  oc project $TEST_YAML_NAMESPACE_BETA
+  resolve_resources examples/v1beta1 tests-resolved-beta.yaml $IGNORES $OPENSHIFT_REGISTRY_PREFIX
+  oc create -f tests-resolved-beta.yaml
+
+  common "v1beta1" || return 1
+}
+
+function common() {
   # The rest of this function copied from test/e2e-common.sh#run_yaml_tests()
   # The only change is "kubectl get builds" -> "oc get builds.build.knative.dev"
   oc get project
@@ -75,14 +96,14 @@ function run_yaml_e2e_tests() {
   echo ">> Checking test results"
   for test in taskrun pipelinerun; do
     if check_results ${test}; then
-      echo ">> All YAML tests passed"
+      echo ">> All YAML tests passed for $1"
       return 0
     fi
   done
 
   # it failed, display logs
   for test in taskrun pipelinerun; do
-    echo "<< State and Logs for ${test}"
+    echo "<< State and Logs for $1 ${test}"
     output_yaml_test_results ${test}
     output_pods_logs ${test}
   done
@@ -167,22 +188,24 @@ function delete_build_pipeline_openshift() {
 
 function delete_test_resources_openshift() {
   echo ">> Removing test resources (test/)"
-  # ignore any errors while deleting tests-resolved.yaml
+  # ignore any errors while deleting tests-resolved-*.yaml
   # some of the resources use `GenerateName` instead of `Name`
-  oc delete --ignore-not-found=true -f tests-resolved.yaml || true
+  oc delete --ignore-not-found=true -f tests-resolved-alpha.yaml || true
+  oc delete --ignore-not-found=true -f tests-resolved-beta.yaml || true
 }
 
 function delete_test_namespace() {
   echo ">> Deleting test namespace $TEST_NAMESPACE"
   #oc policy remove-role-from-group system:image-puller system:serviceaccounts:$TEST_NAMESPACE -n $OPENSHIFT_BUILD_NAMESPACE
   #oc delete project $TEST_NAMESPACE
-  oc policy remove-role-from-group system:image-puller system:serviceaccounts:$TEST_YAML_NAMESPACE -n $OPENSHIFT_BUILD_NAMESPACE
-  oc delete project $TEST_YAML_NAMESPACE
+  oc policy remove-role-from-group system:image-puller system:serviceaccounts:$TEST_YAML_NAMESPACE_ALPHA -n $OPENSHIFT_BUILD_NAMESPACE
+  oc policy remove-role-from-group system:image-puller system:serviceaccounts:$TEST_YAML_NAMESPACE_BETA -n $OPENSHIFT_BUILD_NAMESPACE
+  oc delete project $TEST_YAML_NAMESPACE_ALPHA $TEST_YAML_NAMESPACE_BETA
 }
 
 function teardown() {
-  delete_test_namespace
   delete_test_resources_openshift
+  delete_test_namespace
   delete_build_pipeline_openshift
 }
 
