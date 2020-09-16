@@ -109,6 +109,18 @@ This will do the push of the tag of the branch for catalog
 
 * When you get it merged then you have now released the new pipeline release, you can then do the other following tasks.
 
+:warning: :warning: :warning: **Please Note:** :warning: :warning: :warning:
+
+When the PR merges, make sure the merge commit is tagged as the release.
+
+```shell script
+git checkout -B openshift/release-v${RELEASE} release-v${RELEASE}
+git tag v${RELEASE}
+git push openshift v${RELEASE}
+```
+
+if you the tag already exists locally, delete it locally and re-tag.
+
 ### Other components
 
 ### CLI
