@@ -24,7 +24,7 @@ git commit -m ":open_file_folder: Update openshift specific files."
 if [[ -d openshift/patches ]];then
     for f in openshift/patches/*.patch;do
         [[ -f ${f} ]] || continue
-        git am ${f}
+        patch -p1 -i "${f}"
     done
 fi
 
