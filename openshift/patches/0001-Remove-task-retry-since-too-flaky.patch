@@ -1,7 +1,7 @@
-From 3f5da4a90ef3dc8c43fce1ef59e281a5eab561a8 Mon Sep 17 00:00:00 2001
+From b08039b7fdfe09f632849f3e7b294549a283f745 Mon Sep 17 00:00:00 2001
 From: Chmouel Boudjnah <chmouel@redhat.com>
 Date: Wed, 7 Oct 2020 17:29:40 +0200
-Subject: [PATCH 1/2] Remove task retry since too flaky
+Subject: [PATCH 2/2] Remove task retry since too flaky
 
 Signed-off-by: Chmouel Boudjnah <chmouel@redhat.com>
 ---
@@ -10,14 +10,14 @@ Signed-off-by: Chmouel Boudjnah <chmouel@redhat.com>
  2 files changed, 2 insertions(+)
 
 diff --git a/test/retry_test.go b/test/retry_test.go
-index ce6625d8..48bd910e 100644
+index 86998e2c..6bb26ef8 100644
 --- a/test/retry_test.go
 +++ b/test/retry_test.go
 @@ -34,6 +34,7 @@ import (
  // TestTaskRunRetry tests that retries behave as expected, by creating multiple
  // Pods for the same TaskRun each time it fails, up to the configured max.
  func TestTaskRunRetry(t *testing.T) {
-+	t.Skip("Flaky)
++	t.Skip("Flaky")
  	ctx := context.Background()
  	ctx, cancel := context.WithCancel(ctx)
  	defer cancel()

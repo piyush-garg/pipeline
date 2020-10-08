@@ -1,7 +1,7 @@
-From 943aca32a8610dc11c954ba2c4d469c053d557f4 Mon Sep 17 00:00:00 2001
+From d1f7728728f9164896ce4eaf7c2f44d9acf09420 Mon Sep 17 00:00:00 2001
 From: Chmouel Boudjnah <chmouel@redhat.com>
 Date: Wed, 7 Oct 2020 17:30:00 +0200
-Subject: [PATCH 2/2] Skip duplicated task, they consume too much memory on
+Subject: [PATCH 1/2] Skip duplicated task, they consume too much memory on
  openshift
 
 Signed-off-by: Chmouel Boudjnah <chmouel@redhat.com>
