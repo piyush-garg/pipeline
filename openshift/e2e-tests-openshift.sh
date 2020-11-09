@@ -23,6 +23,8 @@ readonly OPENSHIFT_BUILD_NAMESPACE=${OPENSHIFT_BUILD_NAMESPACE:-tektoncd-build-$
 # dind-sidecar-taskrun-1: securityContext.privileged: Invalid value: true: Privileged containers are not allowed]
 # gcs: google container storage
 declare -ar SKIP_YAML_TEST=(test-git-volume dind-sidecar-taskrun-1 build-gcs-targz build-gcs-zip gcs-resource)
+# this will be used by tests to have the system namespace name
+export SYSTEM_NAMESPACE=tekton-pipelines
 
 function install_tekton_pipeline() {
   header "Installing Tekton Pipeline"
