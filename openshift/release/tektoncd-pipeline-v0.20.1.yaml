@@ -1654,7 +1654,7 @@ spec:
         image: quay.io/openshift-pipeline/tektoncd-pipeline-controller:v0.20.1
         args: [
           # Version, to be replace at release time
-          "-version", "devel",
+          "-version", "v0.20.1",
           # These images are built on-demand by `ko resolve` and are replaced
           # by image references by digest.
           "-kubeconfig-writer-image", "quay.io/openshift-pipeline/tektoncd-pipeline-kubeconfigwriter:v0.20.1",
