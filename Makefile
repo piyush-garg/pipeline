@@ -1,6 +1,6 @@
 GOOS=linux
 CORE_IMAGES=./cmd/controller ./cmd/entrypoint ./cmd/kubeconfigwriter ./cmd/webhook ./cmd/imagedigestexporter ./cmd/pullrequest-init
-CORE_IMAGES_WITH_GIT=./cmd/creds-init ./cmd/git-init
+CORE_IMAGES_WITH_GIT=./cmd/git-init
 ADDN_IMAGES=./vendor/github.com/GoogleCloudPlatform/cloud-builders/gcs-fetcher/cmd/gcs-fetcher
 # For the custom ones that are not auto generated
 CORE_IMAGES_CUSTOMED=./cmd/nop
