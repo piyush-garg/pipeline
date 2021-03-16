@@ -10,8 +10,8 @@ TODAY=`date "+%Y%m%d"`
 OPENSHIFT_REMOTE=${OPENSHIFT_REMOTE:-openshift}
 
 # Reset release-next to upstream/master.
-git fetch upstream master
-git checkout upstream/master --no-track -B release-next
+git fetch upstream main
+git checkout upstream/main --no-track -B release-next
 
 # Update openshift's master and take all needed files from there.
 git fetch ${OPENSHIFT_REMOTE} master
