@@ -31,6 +31,10 @@ function install_tekton_pipeline() {
 
   create_pipeline
 
+  oc get deployment tekton-pipelines-controller -o yaml
+
+  breakPoint "check-pod-spec"
+
   wait_until_pods_running $TEKTON_PIPELINE_NAMESPACE || return 1
 
   header "Tekton Pipeline Installed successfully"
