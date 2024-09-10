@@ -158,20 +158,24 @@ func validateRepoURL(url string) bool {
 }
 
 func ResolveAnonymousGit(ctx context.Context, params map[string]string) (framework.ResolvedResource, error) {
-	conf := framework.GetResolverConfigFromContext(ctx)
+	gitResolverConfig := GetGitConfig(ctx)
+	var conf ScmInfo
+	if tokenIdentifier, ok := params[TokenIdentifierParam]; ok {
+		conf = gitResolverConfig.ScmTokens[tokenIdentifier]
+	} else {
+		conf = gitResolverConfig.ScmTokens["default"]
+	}
 	repo := params[UrlParam]
 	if repo == "" {
-		if urlString, ok := conf[DefaultURLKey]; ok {
-			repo = urlString
-		} else {
+		urlString := conf.URL
+		if urlString == "" {
 			return nil, errors.New("default Git Repo Url was not set during installation of the git resolver")
 		}
 	}
 	revision := params[RevisionParam]
 	if revision == "" {
-		if revisionString, ok := conf[DefaultRevisionKey]; ok {
-			revision = revisionString
-		} else {
+		revisionString := conf.Revision
+		if revisionString == "" {
 			return nil, errors.New("default Git Revision was not set during installation of the git resolver")
 		}
 	}
@@ -247,9 +251,15 @@ var _ framework.TimedResolution = &Resolver{}
 // GetResolutionTimeout returns a time.Duration for the amount of time a
 // single git fetch may take. This can be configured with the
 // fetch-timeout field in the git-resolver-config configmap.
-func (r *Resolver) GetResolutionTimeout(ctx context.Context, defaultTimeout time.Duration) time.Duration {
-	conf := framework.GetResolverConfigFromContext(ctx)
-	if timeoutString, ok := conf[DefaultTimeoutKey]; ok {
+func (r *Resolver) GetResolutionTimeout(ctx context.Context, defaultTimeout time.Duration, params map[string]string) time.Duration {
+	gitResolverConfig := GetGitConfig(ctx)
+	var conf ScmInfo
+	if tokenIdentifier, ok := params[TokenIdentifierParam]; ok {
+		conf = gitResolverConfig.ScmTokens[tokenIdentifier]
+	} else {
+		conf = gitResolverConfig.ScmTokens["default"]
+	}
+	if timeoutString := conf.Timeout; timeoutString != "" {
 		timeout, err := time.ParseDuration(timeoutString)
 		if err == nil {
 			return timeout
@@ -259,17 +269,24 @@ func (r *Resolver) GetResolutionTimeout(ctx context.Context, defaultTimeout time
 }
 
 func PopulateDefaultParams(ctx context.Context, params []pipelinev1.Param) (map[string]string, error) {
-	conf := framework.GetResolverConfigFromContext(ctx)
-
 	paramsMap := make(map[string]string)
 	for _, p := range params {
 		paramsMap[p.Name] = p.Value.StringVal
 	}
 
+	gitResolverConfig := GetGitConfig(ctx)
+	var conf ScmInfo
+	if tokenIdentifier, ok := paramsMap[TokenIdentifierParam]; ok {
+		conf = gitResolverConfig.ScmTokens[tokenIdentifier]
+	} else {
+		conf = gitResolverConfig.ScmTokens["default"]
+	}
+
 	var missingParams []string
 
 	if _, ok := paramsMap[RevisionParam]; !ok {
-		if defaultRevision, ok := conf[DefaultRevisionKey]; ok {
+		defaultRevision := conf.Revision
+		if defaultRevision != "" {
 			paramsMap[RevisionParam] = defaultRevision
 		} else {
 			missingParams = append(missingParams, RevisionParam)
@@ -284,7 +301,8 @@ func PopulateDefaultParams(ctx context.Context, params []pipelinev1.Param) (map[
 	}
 
 	if paramsMap[UrlParam] == "" && paramsMap[RepoParam] == "" {
-		if urlString, ok := conf[DefaultURLKey]; ok {
+		urlString := conf.URL
+		if urlString != "" {
 			paramsMap[UrlParam] = urlString
 		} else {
 			return nil, fmt.Errorf("must specify one of '%s' or '%s'", UrlParam, RepoParam)
@@ -293,7 +311,8 @@ func PopulateDefaultParams(ctx context.Context, params []pipelinev1.Param) (map[
 
 	if paramsMap[RepoParam] != "" {
 		if _, ok := paramsMap[OrgParam]; !ok {
-			if defaultOrg, ok := conf[DefaultOrgKey]; ok {
+			defaultOrg := conf.Org
+			if defaultOrg != "" {
 				paramsMap[OrgParam] = defaultOrg
 			} else {
 				return nil, fmt.Errorf("'%s' is required when '%s' is specified", OrgParam, RepoParam)
@@ -394,7 +413,7 @@ func ResolveAPIGit(ctx context.Context, params map[string]string, kubeclient kub
 	} else {
 		secretRef = nil
 	}
-	apiToken, err := getAPIToken(ctx, secretRef, kubeclient, logger, cache, ttl)
+	apiToken, err := getAPIToken(ctx, secretRef, kubeclient, logger, cache, ttl, params)
 	if err != nil {
 		return nil, err
 	}
@@ -438,8 +457,14 @@ func ResolveAPIGit(ctx context.Context, params map[string]string, kubeclient kub
 	}, nil
 }
 
-func getAPIToken(ctx context.Context, apiSecret *secretCacheKey, kubeclient kubernetes.Interface, logger *zap.SugaredLogger, cache *cache.LRUExpireCache, ttl time.Duration) ([]byte, error) {
-	conf := framework.GetResolverConfigFromContext(ctx)
+func getAPIToken(ctx context.Context, apiSecret *secretCacheKey, kubeclient kubernetes.Interface, logger *zap.SugaredLogger, cache *cache.LRUExpireCache, ttl time.Duration, params map[string]string) ([]byte, error) {
+	gitResolverConfig := GetGitConfig(ctx)
+	var conf ScmInfo
+	if tokenIdentifier, ok := params[TokenIdentifierParam]; ok {
+		conf = gitResolverConfig.ScmTokens[tokenIdentifier]
+	} else {
+		conf = gitResolverConfig.ScmTokens["default"]
+	}
 
 	ok := false
 
@@ -451,21 +476,24 @@ func getAPIToken(ctx context.Context, apiSecret *secretCacheKey, kubeclient kube
 	}
 
 	if apiSecret.name == "" {
-		if apiSecret.name, ok = conf[APISecretNameKey]; !ok || apiSecret.name == "" {
+		apiSecret.name = conf.APISecretName
+		if apiSecret.name == "" {
 			err := fmt.Errorf("cannot get API token, required when specifying '%s' param, '%s' not specified in config", RepoParam, APISecretNameKey)
 			logger.Info(err)
 			return nil, err
 		}
 	}
 	if apiSecret.key == "" {
-		if apiSecret.key, ok = conf[APISecretKeyKey]; !ok || apiSecret.key == "" {
+		apiSecret.key = conf.APISecretKey
+		if apiSecret.key == "" {
 			err := fmt.Errorf("cannot get API token, required when specifying '%s' param, '%s' not specified in config", RepoParam, APISecretKeyKey)
 			logger.Info(err)
 			return nil, err
 		}
 	}
 	if apiSecret.ns == "" {
-		if apiSecret.ns, ok = conf[APISecretNamespaceKey]; !ok {
+		apiSecret.ns = conf.APISecretNamespace
+		if apiSecret.ns == "" {
 			apiSecret.ns = os.Getenv("SYSTEM_NAMESPACE")
 		}
 	}
@@ -502,16 +530,21 @@ func getAPIToken(ctx context.Context, apiSecret *secretCacheKey, kubeclient kube
 }
 
 func getSCMTypeAndServerURL(ctx context.Context, params map[string]string) (string, string, error) {
-	conf := framework.GetResolverConfigFromContext(ctx)
+	gitResolverConfig := GetGitConfig(ctx)
+	var conf ScmInfo
+	if tokenIdentifier, ok := params[TokenIdentifierParam]; ok {
+		conf = gitResolverConfig.ScmTokens[tokenIdentifier]
+	} else {
+		conf = gitResolverConfig.ScmTokens["default"]
+	}
 
 	var scmType, serverURL string
 	if key, ok := params[ScmTypeParam]; ok {
 		scmType = key
 	}
 	if scmType == "" {
-		if key, ok := conf[SCMTypeKey]; ok && scmType == "" {
-			scmType = key
-		} else {
+		scmType = conf.SCMType
+		if scmType == "" {
 			return "", "", fmt.Errorf("missing or empty %s value in configmap", SCMTypeKey)
 		}
 	}
@@ -519,9 +552,8 @@ func getSCMTypeAndServerURL(ctx context.Context, params map[string]string) (stri
 		serverURL = key
 	}
 	if serverURL == "" {
-		if key, ok := conf[ServerURLKey]; ok && serverURL == "" {
-			serverURL = key
-		} else {
+		serverURL = conf.ServerURL
+		if serverURL == "" {
 			return "", "", fmt.Errorf("missing or empty %s value in configmap", ServerURLKey)
 		}
 	}

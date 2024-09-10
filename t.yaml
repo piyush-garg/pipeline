@@ -1,0 +1,8 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: echo-task
+spec:
+  steps:
+  - image: mirror.gcr.io/ubuntu
+    script: echo hello

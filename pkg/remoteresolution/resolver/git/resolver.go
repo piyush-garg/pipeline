@@ -141,9 +141,15 @@ var _ resolutionframework.TimedResolution = &Resolver{}
 // GetResolutionTimeout returns a time.Duration for the amount of time a
 // single git fetch may take. This can be configured with the
 // fetch-timeout field in the git-resolver-config configmap.
-func (r *Resolver) GetResolutionTimeout(ctx context.Context, defaultTimeout time.Duration) time.Duration {
-	conf := resolutionframework.GetResolverConfigFromContext(ctx)
-	if timeoutString, ok := conf[git.DefaultTimeoutKey]; ok {
+func (r *Resolver) GetResolutionTimeout(ctx context.Context, defaultTimeout time.Duration, params map[string]string) time.Duration {
+	gitResolverConfig := git.GetGitConfig(ctx)
+	var conf git.ScmInfo
+	if tokenIdentifier, ok := params[git.TokenIdentifierParam]; ok {
+		conf = gitResolverConfig.ScmTokens[tokenIdentifier]
+	} else {
+		conf = gitResolverConfig.ScmTokens["default"]
+	}
+	if timeoutString := conf.Timeout; timeoutString != "" {
 		timeout, err := time.ParseDuration(timeoutString)
 		if err == nil {
 			return timeout

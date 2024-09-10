@@ -39,4 +39,6 @@ const (
 	ScmTypeParam string = "scmType"
 	// serverURLParam is an optional string to the server URL for the SCM API to connect to
 	ServerURLParam string = "serverURL"
+	// tokenIdentifierParam is an optional string to the which scmToken configuration to use
+	TokenIdentifierParam string = "token-identifier"
 )

@@ -216,7 +216,7 @@ func TestValidateParams_Failure(t *testing.T) {
 func TestGetResolutionTimeoutDefault(t *testing.T) {
 	resolver := Resolver{}
 	defaultTimeout := 30 * time.Minute
-	timeout := resolver.GetResolutionTimeout(context.Background(), defaultTimeout)
+	timeout := resolver.GetResolutionTimeout(context.Background(), defaultTimeout, map[string]string{})
 	if timeout != defaultTimeout {
 		t.Fatalf("expected default timeout to be returned")
 	}
@@ -230,7 +230,7 @@ func TestGetResolutionTimeoutCustom(t *testing.T) {
 		DefaultTimeoutKey: configTimeout.String(),
 	}
 	ctx := framework.InjectResolverConfigToContext(context.Background(), config)
-	timeout := resolver.GetResolutionTimeout(ctx, defaultTimeout)
+	timeout := resolver.GetResolutionTimeout(ctx, defaultTimeout, map[string]string{})
 	if timeout != configTimeout {
 		t.Fatalf("expected timeout from config to be returned")
 	}

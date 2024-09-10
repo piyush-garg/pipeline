@@ -16,6 +16,14 @@ limitations under the License.
 
 package git
 
+import (
+	"context"
+	"reflect"
+	"strings"
+
+	"github.com/tektoncd/pipeline/pkg/resolution/resolver/framework"
+)
+
 const (
 	// DefaultTimeoutKey is the configuration field name for controlling
 	// the maximum duration of a resolution request for a file from git.
@@ -43,3 +51,74 @@ const (
 	// APISecretNamespaceKey is the config map key for the token secret's namespace
 	APISecretNamespaceKey = "api-token-secret-namespace"
 )
+
+type GitResolverConfig struct {
+	ScmTokens map[string]ScmInfo
+}
+
+type ScmInfo struct {
+	Timeout            string `json:"fetch-timeout"`
+	URL                string `json:"default-url"`
+	Revision           string `json:"default-revision"`
+	Org                string `json:"default-org"`
+	ServerURL          string `json:"server-url"`
+	SCMType            string `json:"scm-type"`
+	APISecretName      string `json:"api-token-secret-name"`
+	APISecretKey       string `json:"api-token-secret-namespace"`
+	APISecretNamespace string `json:"api-secret-namespace"`
+}
+
+func GetGitConfig(ctx context.Context) GitResolverConfig {
+	var scmInfo interface{} = &ScmInfo{}
+	structType := reflect.TypeOf(scmInfo).Elem()
+	gitResolverConfig := GitResolverConfig{ScmTokens: map[string]ScmInfo{}}
+	conf := framework.GetResolverConfigFromContext(ctx)
+	for k, v := range conf {
+		if k == "identifier" {
+			_, ok := gitResolverConfig.ScmTokens[v]
+			if ok {
+				continue
+			}
+			gitResolverConfig.ScmTokens[k] = ScmInfo{}
+		}
+		key := strings.Split(k, ".")
+		if len(key) >= 3 && key[0] == "provider" {
+			keyValue := strings.Join(key[2:], ".")
+			_, ok := gitResolverConfig.ScmTokens[key[1]]
+			if !ok {
+				gitResolverConfig.ScmTokens[key[1]] = ScmInfo{}
+			}
+			for i := 0; i < structType.NumField(); i++ {
+				field := structType.Field(i)
+				fieldName := field.Name
+				jsonTag := field.Tag.Get("json")
+				if keyValue == jsonTag {
+					tokenDetails := gitResolverConfig.ScmTokens[k]
+					var scm interface{} = &tokenDetails
+					structValue := reflect.ValueOf(scm).Elem()
+					structValue.FieldByName(fieldName).SetString(v)
+					gitResolverConfig.ScmTokens[key[1]] = structValue.Interface().(ScmInfo)
+				}
+			}
+		}
+		if key[0] != "provider" {
+			_, ok := gitResolverConfig.ScmTokens["default"]
+			if !ok {
+				gitResolverConfig.ScmTokens["default"] = ScmInfo{}
+			}
+			for i := 0; i < structType.NumField(); i++ {
+				field := structType.Field(i)
+				fieldName := field.Name
+				jsonTag := field.Tag.Get("json")
+				if k == jsonTag {
+					tokenDetails := gitResolverConfig.ScmTokens[k]
+					var scm interface{} = &tokenDetails
+					structValue := reflect.ValueOf(scm).Elem()
+					structValue.FieldByName(fieldName).SetString(v)
+					gitResolverConfig.ScmTokens["default"] = structValue.Interface().(ScmInfo)
+				}
+			}
+		}
+	}
+	return gitResolverConfig
+}
