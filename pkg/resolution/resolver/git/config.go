@@ -93,7 +93,7 @@ func GetGitConfig(ctx context.Context) GitResolverConfig {
 				fieldName := field.Name
 				jsonTag := field.Tag.Get("json")
 				if keyValue == jsonTag {
-					tokenDetails := gitResolverConfig.ScmTokens[k]
+					tokenDetails := gitResolverConfig.ScmTokens[key[1]]
 					var scm interface{} = &tokenDetails
 					structValue := reflect.ValueOf(scm).Elem()
 					structValue.FieldByName(fieldName).SetString(v)
@@ -111,7 +111,7 @@ func GetGitConfig(ctx context.Context) GitResolverConfig {
 				fieldName := field.Name
 				jsonTag := field.Tag.Get("json")
 				if k == jsonTag {
-					tokenDetails := gitResolverConfig.ScmTokens[k]
+					tokenDetails := gitResolverConfig.ScmTokens["default"]
 					var scm interface{} = &tokenDetails
 					structValue := reflect.ValueOf(scm).Elem()
 					structValue.FieldByName(fieldName).SetString(v)
