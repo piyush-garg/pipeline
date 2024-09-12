@@ -64,8 +64,8 @@ type ScmInfo struct {
 	ServerURL          string `json:"server-url"`
 	SCMType            string `json:"scm-type"`
 	APISecretName      string `json:"api-token-secret-name"`
-	APISecretKey       string `json:"api-token-secret-namespace"`
-	APISecretNamespace string `json:"api-secret-namespace"`
+	APISecretKey       string `json:"api-token-secret-key"`
+	APISecretNamespace string `json:"api-token-secret-namespace"`
 }
 
 func GetGitConfig(ctx context.Context) GitResolverConfig {
@@ -74,49 +74,29 @@ func GetGitConfig(ctx context.Context) GitResolverConfig {
 	gitResolverConfig := GitResolverConfig{ScmTokens: map[string]ScmInfo{}}
 	conf := framework.GetResolverConfigFromContext(ctx)
 	for k, v := range conf {
-		if k == "identifier" {
-			_, ok := gitResolverConfig.ScmTokens[v]
-			if ok {
-				continue
-			}
-			gitResolverConfig.ScmTokens[k] = ScmInfo{}
-		}
+		var tokenIdentifier, tokenKey string
 		key := strings.Split(k, ".")
-		if len(key) >= 3 && key[0] == "provider" {
-			keyValue := strings.Join(key[2:], ".")
-			_, ok := gitResolverConfig.ScmTokens[key[1]]
-			if !ok {
-				gitResolverConfig.ScmTokens[key[1]] = ScmInfo{}
-			}
-			for i := 0; i < structType.NumField(); i++ {
-				field := structType.Field(i)
-				fieldName := field.Name
-				jsonTag := field.Tag.Get("json")
-				if keyValue == jsonTag {
-					tokenDetails := gitResolverConfig.ScmTokens[key[1]]
-					var scm interface{} = &tokenDetails
-					structValue := reflect.ValueOf(scm).Elem()
-					structValue.FieldByName(fieldName).SetString(v)
-					gitResolverConfig.ScmTokens[key[1]] = structValue.Interface().(ScmInfo)
-				}
-			}
+		if len(key) >= 3 && key[0] == "identifier" {
+			tokenKey = strings.Join(key[2:], ".")
+			tokenIdentifier = key[1]
+		} else {
+			tokenKey = k
+			tokenIdentifier = "default"
 		}
-		if key[0] != "provider" {
-			_, ok := gitResolverConfig.ScmTokens["default"]
-			if !ok {
-				gitResolverConfig.ScmTokens["default"] = ScmInfo{}
-			}
-			for i := 0; i < structType.NumField(); i++ {
-				field := structType.Field(i)
-				fieldName := field.Name
-				jsonTag := field.Tag.Get("json")
-				if k == jsonTag {
-					tokenDetails := gitResolverConfig.ScmTokens["default"]
-					var scm interface{} = &tokenDetails
-					structValue := reflect.ValueOf(scm).Elem()
-					structValue.FieldByName(fieldName).SetString(v)
-					gitResolverConfig.ScmTokens["default"] = structValue.Interface().(ScmInfo)
-				}
+		_, ok := gitResolverConfig.ScmTokens[tokenIdentifier]
+		if !ok {
+			gitResolverConfig.ScmTokens[tokenIdentifier] = ScmInfo{}
+		}
+		for i := 0; i < structType.NumField(); i++ {
+			field := structType.Field(i)
+			fieldName := field.Name
+			jsonTag := field.Tag.Get("json")
+			if tokenKey == jsonTag {
+				tokenDetails := gitResolverConfig.ScmTokens[tokenIdentifier]
+				var scm interface{} = &tokenDetails
+				structValue := reflect.ValueOf(scm).Elem()
+				structValue.FieldByName(fieldName).SetString(v)
+				gitResolverConfig.ScmTokens[tokenIdentifier] = structValue.Interface().(ScmInfo)
 			}
 		}
 	}
